@@ -4,11 +4,17 @@
   "version": "1.0",
   "description": "A Chrome extension to detect phishing emails using APIs and heuristics.",
   "permissions": [
-    "identity",
     "storage",
     "scripting",
     "tabs",
     "activeTab"
+  ],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "https://outlook.live.com/*",
+    "https://mail.yahoo.com/*",
+    "https://mail.aol.com/*",
+    "https://mail.proton.me/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -30,7 +36,8 @@
         "https://mail.aol.com/*",
         "https://mail.proton.me/*"
       ],
-      "js": ["lib/domp purify.min.js", "heuristics.js", "content.js"]
+      "js": ["lib/dompurify.min.js", "content.js"],
+      "run_at": "document_idle"
     }
   ],
   "options_page": "options.html",
@@ -40,12 +47,6 @@
     "128": "images/icon128.png"
   },
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self';"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": ["success.html"],
-      "matches": ["<all_urls>"]
-    }
-  ]
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
 }

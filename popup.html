@@ -1,105 +1,138 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Phishing Checker</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phishing Email Checker</title>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
-      width: 300px;
-      padding: 15px;
+      min-width: 300px;
+      background-color: #f3f4f6;
+      padding: 16px;
       font-family: Arial, sans-serif;
-      font-size: 14px;
-      box-sizing: border-box;
-      background-color: #f9f9f9;
     }
-    h3 {
-      margin: 0 0 15px;
-      text-align: center;
-      color: #333;
-    }
-    button {
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 8px 0;
-      width: 100%;
-      box-sizing: border-box;
-      transition: background 0.3s ease;
-    }
-    #checkButton {
-      padding: 12px 20px;
-      background: linear-gradient(135deg, #1e90ff, #00b7eb);
-      color: white;
-      font-size: 16px;
+    h1 {
+      font-size: 1.125rem;
       font-weight: bold;
-    }
-    #checkButton:hover {
-      background: linear-gradient(135deg, #1c86ee, #00a3d6);
-    }
-    #cancelButton, #buyAdFreeButton, #configButton {
-      padding: 8px 16px;
-      background: linear-gradient(135deg, #dfe9f3, #c0d6e4);
-      color: #333;
-      font-size: 14px;
-    }
-    #cancelButton:hover, #buyAdFreeButton:hover, #configButton:hover {
-      background: linear-gradient(135deg, #c0d6e4, #a8c7d9);
-    }
-    a {
-      color: #1e90ff;
-      text-decoration: none;
-      display: block;
-      margin: 10px 0;
-      text-align: center;
-      font-size: 13px;
-    }
-    a:hover {
-      text-decoration: underline;
+      color: #1f2937;
+      margin-bottom: 16px;
     }
     #status {
-      margin-top: 12px;
+      color: #374151;
+      margin-bottom: 16px;
+    }
+    #logWindow {
+      display: none;
+      height: 150px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      background-color: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
       padding: 8px;
-      background-color: #e9f4ff;
-      border-radius: 4px;
-      color: #333;
-      font-size: 13px;
-      word-wrap: break-word;
+      font-size: 0.875rem;
+      margin-top: 8px;
     }
     #progressBarContainer {
       display: none;
       width: 100%;
-      background-color: #f0f0f0;
-      border-radius: 5px;
-      margin-top: 10px;
-      overflow: hidden;
+      background-color: #e5e7eb;
+      border-radius: 6px;
+      height: 8px;
+      margin-top: 8px;
     }
     #progressBar {
       width: 0%;
-      height: 10px;
-      background: linear-gradient(135deg, #1e90ff, #00b7eb);
-      animation: progressAnimation 2s linear infinite;
+      height: 100%;
+      background-color: #3b82f6;
+      border-radius: 6px;
+      transition: width 0.3s ease-in-out;
     }
-    @keyframes progressAnimation {
-      0% { background-position: 0px; }
-      100% { background-position: 40px; }
+    #resultsWindow {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 16px;
+      width: 90%;
+      max-width: 280px;
+      z-index: 10;
+    }
+    #resultsWindow h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+    #resultsContent {
+      color: #374151;
+      font-size: 0.875rem;
+    }
+    #resultsWindow button {
+      margin-top: 8px;
+      width: 100%;
+      background-color: #3b82f6;
+      color: white;
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+    }
+    #resultsWindow button:hover {
+      background-color: #2563eb;
+    }
+    button {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      color: white;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    #checkButton {
+      background-color: #3b82f6;
+    }
+    #checkButton:hover {
+      background-color: #2563eb;
+    }
+    #cancelButton {
+      display: none;
+      background-color: #ef4444;
+    }
+    #cancelButton:hover {
+      background-color: #dc2626;
+    }
+    #configButton {
+      background-color: #6b7280;
+    }
+    #configButton:hover {
+      background-color: #4b5563;
     }
   </style>
 </head>
 <body>
-  <h3>Phishing Email Checker</h3>
-  <button id="checkButton">Check Current Email</button>
-  <button id="cancelButton" style="display: none;">Cancel Check</button>
+  <h1>Phishing Email Checker</h1>
+  <div id="status">Ready to check.</div>
   <div id="progressBarContainer">
     <div id="progressBar"></div>
   </div>
-  <button id="buyAdFreeButton">Go Ad-Free (€0.99)</button>
+  <div id="logWindow"></div>
+  <div id="resultsWindow">
+    <h2>Analysis Results</h2>
+    <div id="resultsContent"></div>
+    <button id="closeResults">Close</button>
+  </div>
+  <button id="checkButton">Check Current Email</button>
+  <button id="cancelButton">Cancel Check</button>
   <button id="configButton">Configure API Keys</button>
-  <a href="https://www.buymeacoffee.com/yourusername" target="_blank">Support Us on BuyMeACoffee</a>
-  <a href="https://github.com/yourusername/phishing-checker/privacy-policy" target="_blank">Privacy Policy</a>
-  <div id="status"></div>
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

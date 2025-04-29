@@ -1,5 +1,4 @@
-// README.md
-# Phishing Email Checker Extension
+# FishBuster (Phishing Email Checker Extension)
 
 A Chrome extension to detect phishing emails in the top 5 webmail services (Gmail, Outlook, Yahoo Mail, AOL Mail, ProtonMail) using CheckPhish, VirusTotal, PhishTank APIs, and advanced heuristics. Free to use with a daily ad, ad-free for a one-time €0.99 payment. Supports donations through BuyMeACoffee.
 
@@ -27,8 +26,7 @@ A Chrome extension to detect phishing emails in the top 5 webmail services (Gmai
   - `content.js`: Email extraction and result display.
   - `popup.js`: UI and ad handling.
   - `options.js`: Settings management.
-- **Dependencies**: DOMPurify (included).
-- 
+
 ## Compliance
 - **GDPR/CCPA**: User consent for data sharing, anonymized data (hashed URLs, no PII).
 
@@ -41,6 +39,3 @@ MIT License. See LICENSE file .
 ## Support
 - Email: m.a.kitsios@gmail.com
 - BuyMeACoffee: https://www.buymeacoffee.com/Jexasa
-```
-
-```markdown

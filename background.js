@@ -13,27 +13,140 @@ const requestCounts = {
 const API_CACHE_KEY = 'apiCache';
 const CACHE_DURATION = 24 * 60 * 60 * 1000;
 const API_TIMEOUT = 10000;
+const CHECK_TIMEOUT = 30000;
+const MAX_LINKS_TO_PROCESS = 5;
 
 let isCheckCancelled = false;
 
+function sanitizeString(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/[<>&"']/g, match => ({
+    '<': '<',
+    '>': '>',
+    '&': '&',
+    '"': '"',
+    "'": '''
+  }[match]));
+}
+
+function checkPhishingHeuristics(sender, content, links, domain) {
+  console.log('[PhishingChecker] Running heuristic analysis for domain:', domain);
+  let score = 0;
+  const warnings = [];
+
+  const trustedDomains = [
+    'e-food.gr',
+    'gmail.com',
+    'outlook.com',
+    'yahoo.com'
+  ];
+  if (trustedDomains.includes(domain)) {
+    console.log('[PhishingChecker] Trusted domain detected, reducing suspicion:', domain);
+    return { score: 0, warnings: ['Trusted domain, no further checks applied.'] };
+  }
+
+  const suspiciousSenderPatterns = [
+    /noreply@.*\.xyz/i,
+    /support@.*\.top/i,
+    /.*@.*\.ru/i
+  ];
+  if (suspiciousSenderPatterns.some(pattern => pattern.test(sender))) {
+    score += 20;
+    warnings.push('Suspicious sender domain detected');
+  }
+
+  const suspiciousKeywords = [
+    'urgent',
+    'verify your account',
+    'password reset',
+    'click here immediately'
+  ];
+  suspiciousKeywords.forEach(keyword => {
+    if (content.includes(keyword)) {
+      score += 10;
+      warnings.push(`Suspicious keyword detected: "${keyword}"`);
+    }
+  });
+
+  if (content.includes('unsubscribe')) {
+    const hasOtherSuspiciousKeywords = suspiciousKeywords.some(keyword => content.includes(keyword));
+    if (hasOtherSuspiciousKeywords) {
+      score += 10;
+      warnings.push('Suspicious keyword detected: "unsubscribe" with other risky keywords');
+    } else {
+      const footerPatterns = [
+        /unsubscribe\s*\|/,
+        /to\s*unsubscribe\s*click/,
+        /unsubscribe\s*from\s*this\s*email/
+      ];
+      if (footerPatterns.some(pattern => pattern.test(content))) {
+        warnings.push('Unsubscribe detected in footer, likely benign');
+      } else {
+        score += 5;
+        warnings.push('Suspicious keyword detected: "unsubscribe" (not in footer)');
+      }
+    }
+  }
+
+  const suspiciousLinkDomains = [
+    '.xyz',
+    '.top',
+    '.ru'
+  ];
+  links.forEach(link => {
+    try {
+      const url = new URL(link);
+      if (suspiciousLinkDomains.some(suffix => url.hostname.endsWith(suffix))) {
+        score += 15;
+        warnings.push(`Suspicious link domain detected: ${url.hostname}`);
+      }
+    } catch (e) {
+      warnings.push(`Invalid URL detected: ${link}`);
+    }
+  });
+
+  return { score, warnings };
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('[PhishingChecker] Message received in background script:', message);
   try {
     if (message.type === 'analyzeEmail') {
+      console.log('[PhishingChecker] Processing analyzeEmail message:', message);
       isCheckCancelled = false;
-      analyzeEmail(message.emailData).then(analysis => {
+      Promise.race([
+        analyzeEmail(message.emailData),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Analysis timed out')), CHECK_TIMEOUT))
+      ]).then(analysis => {
         if (!isCheckCancelled) {
-          sendResponse({ result: analysis });
+          console.log('[PhishingChecker] Analysis completed, sending result:', analysis);
+          chrome.runtime.sendMessage({ type: 'result', result: analysis }, () => {
+            console.log('[PhishingChecker] Result message sent to popup');
+            if (chrome.runtime.lastError) {
+              console.error('[PhishingChecker] Error sending result to popup:', chrome.runtime.lastError.message);
+            }
+          });
           if (analysis.riskLevel === 'High' || analysis.riskLevel === 'Medium') {
             storePhishingData(message.emailData, analysis).catch(err => logError('Data storage failed', err));
           }
+        } else {
+          console.log('[PhishingChecker] Check was cancelled, not sending result');
         }
+        sendResponse({ success: true });
       }).catch(err => {
         if (!isCheckCancelled) {
           logError('Analysis failed', err);
-          sendResponse({ result: { riskLevel: 'Error', score: 0, warnings: ['Analysis failed: ' + err.message] } });
+          chrome.runtime.sendMessage({ type: 'error', error: err.message }, () => {
+            console.log('[PhishingChecker] Error message sent to popup');
+            if (chrome.runtime.lastError) {
+              console.error('[PhishingChecker] Error sending error message to popup:', chrome.runtime.lastError.message);
+            }
+          });
         }
+        sendResponse({ error: err.message });
       });
     } else if (message.type === 'getApiKeys') {
+      console.log('[PhishingChecker] Retrieving API keys');
       chrome.storage.sync.get(['checkPhishKey', 'virusTotalKey', 'phishTankKey'], keys => {
         sendResponse({
           checkPhishKey: decryptKey(keys.checkPhishKey),
@@ -42,17 +155,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       });
     } else if (message.type === 'cancelCheck') {
+      console.log('[PhishingChecker] Cancelling check');
       isCheckCancelled = true;
       sendResponse({ success: true });
-    } else if (message.type === 'initiatePayment') {
-      initiateStripePayment().then(checkoutUrl => {
-        sendResponse({ checkoutUrl });
-      }).catch(err => {
-        logError('Payment initiation failed', err);
-        sendResponse({ error: 'Failed to initiate payment' });
-      });
     } else if (message.type === 'reopenPopup') {
       chrome.action.openPopup();
+    } else if (message.type === 'progressUpdate') {
+      chrome.runtime.sendMessage(message, () => {
+        console.log('[PhishingChecker] Progress update forwarded to popup');
+        if (chrome.runtime.lastError) {
+          console.error('[PhishingChecker] Error sending progress update to popup:', chrome.runtime.lastError.message);
+        }
+      });
+      sendResponse({ success: true });
+    } else {
+      console.warn('[PhishingChecker] Unhandled message type:', message.type);
+      sendResponse({ error: 'Unhandled message type' });
     }
   } catch (err) {
     logError('Message handling failed', err);
@@ -65,49 +183,65 @@ function logError(message, error) {
   console.error(`[PhishingChecker] ${message}:`, error);
 }
 
+async function sendProgressUpdate(phase, percentage) {
+  console.log('[PhishingChecker] Sending progress update:', phase, percentage);
+  try {
+    await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type: 'progressUpdate', phase, percentage }, response => {
+        if (chrome.runtime.lastError) {
+          console.error('[PhishingChecker] Failed to send progress update:', chrome.runtime.lastError.message);
+          reject(chrome.runtime.lastError);
+        } else {
+          console.log('[PhishingChecker] Progress update sent successfully:', phase, percentage);
+          resolve(response);
+        }
+      });
+    });
+  } catch (err) {
+    console.error('[PhishingChecker] Failed to send progress update:', err);
+  }
+}
+
 async function analyzeEmail(emailData) {
+  console.log('[PhishingChecker] Starting email analysis with data:', emailData);
   let score = 0;
   let warnings = [];
 
-  const sender = DOMPurify.sanitize(emailData.sender.toLowerCase());
-  const content = DOMPurify.sanitize(emailData.content.toLowerCase());
-  const links = emailData.links.map(link => DOMPurify.sanitize(link)).filter(link => isValidUrl(link));
-
-  const heuristicResult = await window.checkPhishingHeuristics(sender, content, links, emailData.domain);
-  score += heuristicResult.score;
-  warnings.push(...heuristicResult.warnings);
-
-  const keys = await new Promise(resolve => chrome.storage.sync.get(['checkPhishKey', 'virusTotalKey', 'phishTankKey'], resolve));
-  const checkPhishKey = decryptKey(keys.checkPhishKey);
-  const virusTotalKey = decryptKey(keys.virusTotalKey);
-  const phishTankKey = decryptKey(keys.phishTankKey);
-
-  if (checkPhishKey || virusTotalKey || phishTankKey) {
-    const apiResults = await Promise.all([
-      checkPhishKey ? checkCachedApi('checkPhish', links, checkPhishingApi) : Promise.resolve({ isMalicious: false, reason: 'CheckPhish API key not configured' }),
-      virusTotalKey ? checkCachedApi('virusTotal', links, checkVirusTotalApi) : Promise.resolve({ isMalicious: false, reason: 'VirusTotal API key not configured' }),
-      phishTankKey ? checkCachedApi('phishTank', links, checkPhishTankApi) : Promise.resolve({ isMalicious: false, reason: 'PhishTank API key not configured' })
-    ]);
-
-    for (const result of apiResults) {
-      if (result.isMalicious) {
-        score += 20;
-        warnings.push(result.reason);
-      }
-    }
-
-    if (apiResults.every(r => !r.isMalicious && r.reason.includes('unavailable'))) {
-      score += 10;
-      warnings.push('All configured APIs unavailable; relying on heuristics.');
-    }
-  } else {
-    warnings.push('No API keys configured; analysis based on heuristics only.');
+  let sender, content, links;
+  try {
+    sender = sanitizeString(emailData.sender?.toLowerCase() || '');
+    content = sanitizeString(emailData.content?.toLowerCase() || '');
+    links = (emailData.links || [])
+      .slice(0, MAX_LINKS_TO_PROCESS)
+      .map(link => sanitizeString(link))
+      .filter(link => isValidUrl(link));
+  } catch (err) {
+    throw new Error('Failed to sanitize email data: ' + err.message);
   }
 
+  if (!sender || !content) {
+    throw new Error('Invalid email data: sender or content missing');
+  }
+
+  await sendProgressUpdate('Running heuristic analysis', 0);
+  console.log('[PhishingChecker] Running heuristic analysis');
+  try {
+    const heuristicResult = checkPhishingHeuristics(sender, content, links, emailData.domain);
+    score += heuristicResult.score;
+    warnings.push(...heuristicResult.warnings);
+  } catch (err) {
+    warnings.push('Heuristic analysis failed: ' + err.message);
+  }
+  await sendProgressUpdate('Heuristic analysis completed', 50);
+
+  await sendProgressUpdate('Finalizing results', 75);
   let riskLevel = 'Low';
   if (score > 70) riskLevel = 'High';
   else if (score > 40) riskLevel = 'Medium';
 
+  await sendProgressUpdate('Analysis complete', 100);
+
+  console.log('[PhishingChecker] Final analysis result:', { riskLevel, score: Math.min(score, 100), warnings });
   return { riskLevel, score: Math.min(score, 100), warnings };
 }
 
@@ -297,7 +431,6 @@ async function storePhishingData(emailData, analysis) {
     timestamp: Date.now()
   };
 
-  // Skip external data storage since there's no backend
   console.log('[PhishingChecker] Anonymized data (not stored due to no backend):', anonymizedData);
 }
 
@@ -333,30 +466,6 @@ function decryptKey(encrypted) {
   } catch {
     return '';
   }
-}
-
-async function initiateStripePayment() {
-  const user = firebase.auth().currentUser;
-  if (!user) {
-    // Fallback to anonymous user ID if Firebase Auth fails
-    const userId = 'anonymous-' + Date.now();
-    chrome.storage.local.set({ tempUserId: userId });
-  }
-
-  const checkoutSession = await firebase.firestore().collection('users').doc(user ? user.uid : 'anonymous-' + Date.now()).collection('checkout_sessions').add({
-    price: 'price_1YOUR_STRIPE_PRICE_ID',
-    success_url: chrome.runtime.getURL('success.html') + '?session_id={CHECKOUT_SESSION_ID}',
-    cancel_url: chrome.runtime.getURL('popup.html')
-  });
-
-  return new Promise((resolve, reject) => {
-    checkoutSession.onSnapshot(snap => {
-      const { url } = snap.data();
-      if (url) {
-        resolve(url);
-      }
-    }, err => reject(err));
-  });
 }
 
 chrome.runtime.onInstalled.addListener(() => {

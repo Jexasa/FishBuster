@@ -1,148 +1,54 @@
+console.log('[PhishingChecker] Content script loaded on page:', window.location.href);
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'checkEmail') {
+    console.log('[PhishingChecker] Received checkEmail message in content script');
     try {
-      chrome.runtime.sendMessage({ type: 'checkAdStatus' }, response => {
-        if (!response.canProceed) {
-          displayResult({
-            riskLevel: 'Locked',
-            score: 0,
-            warnings: ['Please watch an ad or purchase ad-free access.']
-          });
-          return;
-        }
-        const emailData = extractEmailData();
-        if (emailData) {
-          chrome.runtime.sendMessage({
-            type: 'analyzeEmail',
-            emailData
-          }, response => {
-            displayResult(response.result);
-          });
-        } else {
-          displayResult({
-            riskLevel: 'Unknown',
-            score: 0,
-            warnings: ['Unable to extract email data. Ensure you are viewing an email.']
-          });
-          console.warn('[PhishingChecker] Email extraction failed: No email content or sender found.');
-        }
+      const emailData = extractEmailData();
+      console.log('[PhishingChecker] Email data extracted:', emailData);
+      chrome.runtime.sendMessage({ type: 'analyzeEmail', emailData }, response => {
+        console.log('[PhishingChecker] AnalyzeEmail message sent, response:', response);
       });
+      console.log('[PhishingChecker] Sent analyzeEmail message to background script');
+      sendResponse({ success: true });
     } catch (err) {
-      console.error('[PhishingChecker] Content script error:', err);
-      displayResult({
-        riskLevel: 'Error',
-        score: 0,
-        warnings: ['Content extraction failed. Check console for details.']
-      });
+      console.error('[PhishingChecker] Error in content script:', err.message, err.stack);
+      chrome.runtime.sendMessage({ error: 'Content script error: ' + err.message });
+      sendResponse({ error: err.message });
     }
+    return true;
   }
 });
 
 function extractEmailData() {
-  try {
-    let emailContainer, senderElement, links;
-    const hostname = window.location.hostname;
-    const selectors = {
-      'mail.google.com': {
-        content: '.a3s.aXjCH, .ii.gt',
-        sender: '.gD',
-        header: '.ha, .gs'
-      },
-      'outlook.live.com': {
-        content: '.elementContainer div[role="document"]',
-        sender: 'span[automatiod="emailAddress"]',
-        header: '.headerContainer'
-      },
-      'mail.yahoo.com': {
-        content: '.msg-body',
-        sender: '.msg-header-from',
-        header: '.msg-header'
-      },
-      'mail.aol.com': {
-        content: '.msgBody',
-        sender: '.from-address',
-        header: '.messageHeader'
-      },
-      'mail.proton.me': {
-        content: '.message-content',
-        sender: '.message-header-from',
-        header: '.message-header'
-      }
-    };
+  console.log('[PhishingChecker] Extracting email data');
+  let sender = 'unknown.sender@domain.com';
+  let content = 'Unable to extract email content';
+  let links = [];
 
-    const config = Object.keys(selectors).find(key => hostname.includes(key));
-    if (!config) {
-      console.warn('[PhishingChecker] Unsupported email service:', hostname);
-      return null;
+  if (window.location.hostname.includes('mail.google.com')) {
+    const emailContainer = document.querySelector('.a3s.aiN') || document.querySelector('.ii.gt');
+    if (emailContainer) {
+      content = emailContainer.textContent.trim();
     }
 
-    emailContainer = document.querySelector(selectors[config].content);
-    senderElement = document.querySelector(selectors[config].sender);
-    links = Array.from(document.querySelectorAll('a[href]')).map(a => a.href).filter(href => href.startsWith('http'));
-
-    if (!emailContainer) {
-      console.warn('[PhishingChecker] Email content not found using selector:', selectors[config].content);
-      return null;
-    }
-    if (!senderElement) {
-      console.warn('[PhishingChecker] Sender element not found using selector:', selectors[config].sender);
-      return null;
+    const senderElement = document.querySelector('span[email]');
+    if (senderElement) {
+      sender = senderElement.getAttribute('email');
     }
 
-    const emailData = {
-      sender: senderElement.getAttribute('email') || senderElement.textContent || '',
-      content: emailContainer.textContent || '',
-      links,
-      domain: hostname
-    };
-
-    if (!emailData.sender || !emailData.content) {
-      console.warn('[PhishingChecker] Incomplete email data:', emailData);
-      return null;
-    }
-
-    return emailData;
-  } catch (error) {
-    console.error('[PhishingChecker] Extraction error:', error);
-    return null;
+    const linkElements = document.querySelectorAll('a[href]');
+    links = Array.from(linkElements)
+      .map(link => link.href)
+      .filter(href => href.startsWith('http') || href.startsWith('https'));
+  } else {
+    throw new Error('Unsupported email provider');
   }
-}
 
-function displayResult(result) {
-  try {
-    let backgroundColor;
-    switch (result.riskLevel) {
-      case 'High': backgroundColor = '#ffcccc'; break;
-      case 'Medium': backgroundColor = '#fff4cc'; break;
-      case 'Low': backgroundColor = '#ccffcc'; break;
-      default: backgroundColor = '#f0f0f0';
-    }
-
-    const banner = document.createElement('div');
-    banner.className = 'phishing-check-banner';
-    banner.style.backgroundColor = backgroundColor;
-    banner.innerHTML = DOMPurify.sanitize(`
-      <strong>Phishing Risk: ${result.riskLevel}</strong> (Score: ${result.score})<br>
-      ${result.warnings.length ? '<ul>' + result.warnings.map(w => `<li>${w}</li>`).join('') + '</ul>' : 'No specific warnings.'}
-    `);
-
-    const hostname = window.location.hostname;
-    const headerSelector = Object.keys({
-      'mail.google.com': '.ha, .gs',
-      'outlook.live.com': '.headerContainer',
-      'mail.yahoo.com': '.msg-header',
-      'mail.aol.com': '.messageHeader',
-      'mail.proton.me': '.message-header'
-    }).find(key => hostname.includes(key));
-
-    const header = headerSelector ? document.querySelector(headerSelector) : null;
-    if (header) {
-      header.prepend(banner);
-    } else {
-      document.body.prepend(banner);
-      console.warn('[PhishingChecker] Header not found, banner appended to body');
-    }
-  } catch (err) {
-    console.error('[PhishingChecker] Display result error:', err);
+  if (!sender || !content) {
+    throw new Error('Failed to extract email data');
   }
+
+  const domain = sender.split('@')[1] || 'unknown';
+  return { sender, content, links, domain };
 }

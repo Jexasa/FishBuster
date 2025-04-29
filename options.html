@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Phishing Checker Settings</title>
+  <style>
+    body {
+      width: 400px;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      box-sizing: border-box;
+      background-color: #f9f9f9;
+    }
+    h3 {
+      margin: 0 0 15px;
+      text-align: center;
+      color: #333;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      color: #333;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.3s ease;
+    }
+    #saveButton {
+      background: linear-gradient(135deg, #1e90ff, #00b7eb);
+      color: white;
+      width: 100%;
+    }
+    #saveButton:hover {
+      background: linear-gradient(135deg, #1c86ee, #00a3d6);
+    }
+    #backButton {
+      background: linear-gradient(135deg, #dfe9f3, #c0d6e4);
+      color: #333;
+      width: 100%;
+      margin-top: 5px;
+    }
+    #backButton:hover {
+      background: linear-gradient(135deg, #c0d6e4, #a8c7d9);
+    }
+    a {
+      color: #1e90ff;
+      text-decoration: none;
+      display: block;
+      margin: 10px 0;
+      text-align: center;
+      font-size: 13px;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    #status {
+      margin-top: 10px;
+      padding: 8px;
+      background-color: #e9f4ff;
+      border-radius: 4px;
+      color: #333;
+      font-size: 13px;
+    }
+    p {
+      font-size: 12px;
+      color: #666;
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h3>Configure Settings</h3>
+  <label for="checkPhishKey">CheckPhish API Key</label>
+  <input type="text" id="checkPhishKey" placeholder="Enter CheckPhish API Key">
+  <label for="virusTotalKey">VirusTotal API Key</label>
+  <input type="text" id="virusTotalKey" placeholder="Enter VirusTotal API Key">
+  <label for="phishTankKey">PhishTank API Key</label>
+  <input type="text" id="phishTankKey" placeholder="Enter PhishTank API Key">
+  <label for="dataSharingConsent">Share anonymized phishing data with security providers?</label>
+  <select id="dataSharingConsent">
+    <option value="false">No</option>
+    <option value="true">Yes (helps improve global phishing detection)</option>
+  </select>
+  <p>Data is anonymized (hashed URLs, no personal info) and used to enhance cybersecurity research.</p>
+  <button id="saveButton">Save</button>
+  <button id="backButton">Back</button>
+  <a href="https://www.buymeacoffee.com/Jexasa" target="_blank">BuyMeACoffee</a>
+  <a href="https://yourwebsite.example.com/privacy" target="_blank">Privacy Policy</a>
+  <div id="status"></div>
+  <script src="options.js"></script>
+</body>
+</html>

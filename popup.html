@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Phishing Checker</title>
+  <style>
+    body {
+      width: 300px;
+      padding: 15px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      box-sizing: border-box;
+      background-color: #f9f9f9;
+    }
+    h3 {
+      margin: 0 0 15px;
+      text-align: center;
+      color: #333;
+    }
+    button {
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 8px 0;
+      width: 100%;
+      box-sizing: border-box;
+      transition: background 0.3s ease;
+    }
+    #checkButton {
+      padding: 12px 20px;
+      background: linear-gradient(135deg, #1e90ff, #00b7eb);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    #checkButton:hover {
+      background: linear-gradient(135deg, #1c86ee, #00a3d6);
+    }
+    #cancelButton, #buyAdFreeButton, #configButton {
+      padding: 8px 16px;
+      background: linear-gradient(135deg, #dfe9f3, #c0d6e4);
+      color: #333;
+      font-size: 14px;
+    }
+    #cancelButton:hover, #buyAdFreeButton:hover, #configButton:hover {
+      background: linear-gradient(135deg, #c0d6e4, #a8c7d9);
+    }
+    a {
+      color: #1e90ff;
+      text-decoration: none;
+      display: block;
+      margin: 10px 0;
+      text-align: center;
+      font-size: 13px;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    #status {
+      margin-top: 12px;
+      padding: 8px;
+      background-color: #e9f4ff;
+      border-radius: 4px;
+      color: #333;
+      font-size: 13px;
+      word-wrap: break-word;
+    }
+    #progressBarContainer {
+      display: none;
+      width: 100%;
+      background-color: #f0f0f0;
+      border-radius: 5px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    #progressBar {
+      width: 0%;
+      height: 10px;
+      background: linear-gradient(135deg, #1e90ff, #00b7eb);
+      animation: progressAnimation 2s linear infinite;
+    }
+    @keyframes progressAnimation {
+      0% { background-position: 0px; }
+      100% { background-position: 40px; }
+    }
+  </style>
+</head>
+<body>
+  <h3>Phishing Email Checker</h3>
+  <button id="checkButton">Check Current Email</button>
+  <button id="cancelButton" style="display: none;">Cancel Check</button>
+  <div id="progressBarContainer">
+    <div id="progressBar"></div>
+  </div>
+  <button id="buyAdFreeButton">Go Ad-Free (€0.99)</button>
+  <button id="configButton">Configure API Keys</button>
+  <a href="https://www.buymeacoffee.com/yourusername" target="_blank">Support Us on BuyMeACoffee</a>
+  <a href="https://github.com/yourusername/phishing-checker/privacy-policy" target="_blank">Privacy Policy</a>
+  <div id="status"></div>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

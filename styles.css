@@ -1,0 +1,41 @@
+.phishing-check-banner {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  z-index: 1000;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.phishing-check-banner ul {
+  margin: 5px 0 0 20px;
+  padding: 0;
+}
+
+.phishing-check-banner li {
+  margin-bottom: 5px;
+}
+
+.ad-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.ad-content {
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  text-align: center;
+  max-width: 300px;
+}

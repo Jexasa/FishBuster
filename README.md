@@ -1,16 +1,11 @@
 # FishBuster (Phishing Email Checker Extension)
 
-A Chrome extension to detect phishing emails in the top 5 webmail services (Gmail, Outlook, Yahoo Mail, AOL Mail, ProtonMail) using CheckPhish, VirusTotal, PhishTank APIs, and advanced heuristics. Free to use with a daily ad, ad-free for a one-time €0.99 payment. Supports donations through BuyMeACoffee.
+A Chrome extension to detect phishing emails in the top 5 webmail services (Gmail, Outlook, Yahoo Mail, AOL Mail, ProtonMail) using CheckPhish, VirusTotal, PhishTank APIs, and advanced heuristics. Free to use with a daily ad, ad-free for a one-time €0.99 payment. Supports donations through BuyMeACoffee (https://buymeacoffee.com/ksexasa).
 
 ## Features
 - **Phishing Detection**: Combines APIs and heuristics (sender spoofing, urgency phrases, link patterns, SPF/DKIM checks).
 - **Webmail Support**: Works with Gmail, Outlook, Yahoo Mail, AOL Mail, ProtonMail.
-- **Monetization**:
-  - Free with one ad per day (Google AdSense).
-  - Ad-free for €0.99 (Stripe).
-  - BuyMeACoffee donations.
-  - Anonymized phishing data sales (opt-in, GDPR-compliant).
-- **Security**: API key encryption, DOMPurify sanitization, CSP, GDPR/CCPA compliance.
+- **Security**: API key encryption, DOMPurify sanitization, CSP, GDPR/CCPA compliant.
 - **Performance**: API caching, retry logic, optimized DOM queries.
 
 ## Configure API Keys:
@@ -34,8 +29,4 @@ A Chrome extension to detect phishing emails in the top 5 webmail services (Gmai
 Submit issues or PRs via GitHub. For feature requests, contact via BuyMeACoffee.
 
 ## License
-MIT License. See LICENSE file .
-
-## Support
-- Email: m.a.kitsios@gmail.com
-- BuyMeACoffee: https://www.buymeacoffee.com/Jexasa
+MIT License

@@ -5,7 +5,7 @@
 
 
 Phishing Email Checker Extension
-A Chrome extension to detect phishing emails in the top 5 webmail services (Gmail, Outlook, Yahoo Mail, AOL Mail, ProtonMail) using CheckPhish, VirusTotal, PhishTank APIs, and advanced heuristics. Free to use with a daily ad, ad-free for a one-time €0.99 payment. Supports donations through BuyMeACoffee (https://buymeacoffee.com/ksexasa).
+A Chrome extension to detect phishing emails in the top 5 webmail services (Gmail, Outlook, Yahoo Mail, AOL Mail, ProtonMail) using CheckPhish, VirusTotal, PhishTank APIs, and advanced heuristics. .
 
 ## Features
 - **Phishing Detection**: Combines APIs and heuristics (sender spoofing, urgency phrases, link patterns, SPF/DKIM checks).
@@ -35,3 +35,6 @@ Submit issues or PRs via GitHub. For feature requests, contact via BuyMeACoffee.
 
 ## License
 MIT License
+
+
+# Free to use with a daily ad, ad-free for a one-time €0.99 payment. Supports donations through BuyMeACoffee (https://buymeacoffee.com/ksexasa)
